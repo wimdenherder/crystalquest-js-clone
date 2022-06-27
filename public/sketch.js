@@ -11,9 +11,9 @@ let bullets = [];
 let enemyBullets = [];
 let mines = [];
 let level = 1; // with enemey bullets testing
-let life = 99999;
+let life = 5;
 let score = 0;
-let flora, giel, deadSound, ijsje, explosive, playerImg, bullet;
+let flora, giel, deadSound, ijsje, explosive, playerImg, bullet, stars;
 let crystalSound,
   warp,
   dieSound,
@@ -23,7 +23,8 @@ let crystalSound,
   enemyDeadSound,
   diamondSound,
   bombSound,
-  enemyShootSound;
+  enemyShootSound,
+  backgroundMusic;
 let firstTimeFullscreen = true;
 let paused = true;
 
@@ -46,6 +47,7 @@ function preload() {
   obstacle3 = loadImage("img/obstacle3.png");
   mariodead = loadImage("img/mariodead.png");
   explosive = loadImage("img/explosive.png");
+  stars = loadImage("img/stars.jpg");
   giel = loadImage("img/giel.png");
   playerImg = loadImage("img/player.png");
   bullet = loadImage("img/bullet.png");
@@ -68,7 +70,8 @@ function preload() {
   enemyDeadSound = loadSound("assets/enemydead.wav");
   deadSound = loadSound("assets/dead.wav");
   shootSound = loadSound("assets/shoot.wav");
-  // videoBack = createVideo("img/levels/level3.mp4");
+  // videoBack = createVideo("img/sky.mp4");
+  // videoBack.speed(0.1);
   // videoBack.loop();
   // videoBack.volume(0);
   // videoBack.hide();
@@ -80,8 +83,8 @@ function windowResized() {
 }
 
 function setup() {
-  // backgroundMusic.play();
-  // backgroundMusic.loop();
+  backgroundMusic.play();
+  backgroundMusic.loop();
   var cvs = createCanvas(windowWidth, windowHeight);
   macSound.play();
   reset();
@@ -127,6 +130,7 @@ function nextLevel() {
 function drawBackground() {
   fill(0);
   rect(0, 0, width, height);
+  image(stars, 0, 0, width, height);
   // image(
   //   backgroundImages[13 + level - 1] || defaultBackground,
   //   0,
@@ -134,7 +138,8 @@ function drawBackground() {
   //   width,
   //   height
   // );
-  // if (level === 3) image(videoBack, 0, 0, width, height);
+  // if (level === 3) image
+  // image(videoBack, 0, 0, width, height);
 }
 
 function draw() {

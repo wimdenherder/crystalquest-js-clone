@@ -5,6 +5,7 @@ function Gate() {
   this.open = false;
 
   this.render = () => {
+    fill(255);
     if (!this.open)
       rect(
         this.pos.x - this.widthGate / 6,
