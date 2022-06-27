@@ -1,9 +1,30 @@
 function Mine() {
   this.width = 70;
-  this.pos = createVector(
-    random(this.width, width - this.width),
-    random(this.width, height - this.width)
-  );
+
+  // within a-b or c-d interval
+  this.random = (a, b, c, d) => {
+    if (a >= b || b >= c || c >= d) return null;
+    const x = random(a, d);
+    if (x >= b && x <= c) return this.random(a, b, c, d);
+    else return x;
+  };
+  this.getRandomPosition = () => {
+    let x = this.random(
+      this.width,
+      width / 2 - this.width,
+      width / 2 + this.width,
+      width - this.width
+    );
+    let y = this.random(
+      this.width,
+      height / 2 - this.width,
+      height / 2 + this.width,
+      height - this.width
+    );
+    return createVector(x, y);
+  };
+
+  this.pos = this.getRandomPosition();
 
   this.render = () => {
     // fill(150, 150, 0);

@@ -8,35 +8,93 @@ let enemyGate;
 let videoBack;
 let explosions = [];
 let bullets = [];
+let enemyBullets = [];
 let mines = [];
-let level = 1;
-let life = 5;
+let level = 1; // with enemey bullets testing
+let life = 99999;
 let score = 0;
-let flora, giel, background, nouSound, appel, explosive;
-let coin, warp, dieSound, breakSound;
+let flora, giel, deadSound, ijsje, explosive, playerImg, bullet;
+let crystalSound,
+  warp,
+  dieSound,
+  breakSound,
+  macSound,
+  enemySound,
+  enemyDeadSound,
+  diamondSound,
+  bombSound,
+  enemyShootSound;
+let firstTimeFullscreen = true;
+let paused = true;
 
 let cfg = {
   enemyAfter: randomBetween(0, 1 * 1000),
   enemyEvery: randomBetween(1 * 1000, 2 * 1000),
 };
 
+function fromTo(lowEnd, highEnd) {
+  var list = [];
+  for (var i = lowEnd; i <= highEnd; i++) {
+    list.push(i);
+  }
+  return list;
+}
+
 function preload() {
+  obstacle1 = loadImage("img/obstacle1.png");
+  obstacle2 = loadImage("img/obstacle2.png");
+  obstacle3 = loadImage("img/obstacle3.png");
+  mariodead = loadImage("img/mariodead.png");
   explosive = loadImage("img/explosive.png");
   giel = loadImage("img/giel.png");
-  backgroundImg = loadImage("img/backgroundImg.jpg");
+  playerImg = loadImage("img/player.png");
+  bullet = loadImage("img/bullet.png");
+  ijsje = loadImage("img/ijsje.png");
+  // backgroundImages = fromTo(1, 26).map((x) =>
+  //   loadImage("img/levels/level" + x + ".jpg")
+  // );
+  // defaultBackground = loadImage("img/levels/level1.jpg");
   backgroundMusic = loadSound("assets/backgroundmusic.mp3");
-  coin = loadSound("assets/coin.mp3");
+  crystalSound = loadSound("assets/crystal.wav");
+  macSound = loadSound("assets/mac.mp4");
   warp = loadSound("assets/Warp.wav");
   dieSound = loadSound("assets/Die.wav");
   breakSound = loadSound("assets/Break.wav");
+  // diamondSound = loadSound("assets/diamond.wav"); //* to do
+  levelSound = loadSound("assets/level.wav");
+  enemySound = loadSound("assets/enemy.wav");
+  enemyShootSound = loadSound("assets/enemyshoot.wav");
+  bombSound = loadSound("assets/bomb.wav");
+  enemyDeadSound = loadSound("assets/enemydead.wav");
+  deadSound = loadSound("assets/dead.wav");
+  shootSound = loadSound("assets/shoot.wav");
+  // videoBack = createVideo("img/levels/level3.mp4");
+  // videoBack.loop();
+  // videoBack.volume(0);
+  // videoBack.hide();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  reset();
 }
 
 function setup() {
-  backgroundMusic.play();
-  //frameRate(60); // Attempt to refresh at starting FPS
-  console.log("cfg %s", JSON.stringify(cfg, null, 2));
-  var cvs = createCanvas(windowWidth - 30, windowHeight - 30);
-  player = new Player();
+  // backgroundMusic.play();
+  // backgroundMusic.loop();
+  var cvs = createCanvas(windowWidth, windowHeight);
+  macSound.play();
+  reset();
+}
+
+function restartGame() {
+  life = 5;
+  reset();
+}
+
+function reset() {
+  crystals = [];
+  mines = [];
   gate = new Gate();
   for (var i = 0; i < 10; i++) {
     crystals.push(new Crystal());
@@ -44,40 +102,52 @@ function setup() {
   for (var i = 0; i < 3; i++) {
     mines.push(new Mine());
   }
-  videoBack = createVideo(["landscapes.webm"]);
-  videoBack.hide();
-  nouSound = loadSound("assets/nou.mp3");
-  reset();
+  tryAgain();
 }
 
-function reset() {
+function tryAgain() {
+  player = new Player();
   (mousePrevX = undefined), (mousePrevY = undefined);
   enemies = [];
   timeStampCreationLastEnemy = 0;
   video = undefined;
   explosions = [];
   bullets = [];
+  enemyBullets = [];
   player.pos = createVector(width / 2, height / 2);
   player.motion = createVector(0, 0);
 }
 
-function restartLevel() {
-  console.log("nou!");
-  nouSound.play();
-  if (life <= 0) noLoop();
+function nextLevel() {
+  levelSound.play();
+  level++;
   reset();
 }
 
 function drawBackground() {
-  image(backgroundImg, 0, 0, width, height);
-  image(videoBack, 0, 0, 1000, 1000);
+  fill(0);
+  rect(0, 0, width, height);
+  // image(
+  //   backgroundImages[13 + level - 1] || defaultBackground,
+  //   0,
+  //   0,
+  //   width,
+  //   height
+  // );
+  // if (level === 3) image(videoBack, 0, 0, width, height);
 }
 
 function draw() {
+  if (paused) return;
   drawBackground();
   createEnemies(); // every x seconds
-  processEnemies();
+  const newEnemyBullets = processEnemies();
+  if (newEnemyBullets.length > 0) {
+    enemyBullets = enemyBullets.concat(newEnemyBullets);
+    console.log({ enemyBullets });
+  }
   processBullets();
+  processEnemyBullets();
   processCrystals();
   processMines();
   checkGate();
@@ -110,22 +180,25 @@ function processCrystals() {
     if (player.hits(crystal)) {
       score += crystal.getScore();
       crystals.splice(i, 1);
-      coin.play();
+      crystalSound.play();
     } else {
       crystal.render();
     }
   }
 }
 
-function mousePressed() {
-  bullets.push(new Bullet(player.pos, player.motion));
+function shoot() {
+  const playerBullet = new PlayerBullet(player.pos, player.motion);
+  bullets.push(playerBullet);
+  shootSound.play();
+  console.log(bullets.length);
 }
 
 function checkGate() {
   if (crystals.length === 0) gate.open = true;
   if (gate.receives(player)) {
     console.log("GAME GEHAALD");
-    noLoop();
+    nextLevel();
   }
 }
 
@@ -136,7 +209,23 @@ function createEnemies() {
       millis() - timeStampCreationLastEnemy > cfg.enemyEvery)
   ) {
     console.log("new enemy!");
-    enemies.push(new Enemy1(player)); //Enemy());
+    const enemiesLib = [Enemy1, Enemy2, Enemy3, Enemy4];
+    let newEnemy;
+    const upTo = Math.floor(level / 2) % enemiesLib.length;
+
+    if (level / 2 >= enemiesLib.length) {
+      newEnemy = enemiesLib[Math.floor(Math.random() * enemiesLib.length)];
+    } else {
+      if (level % 2 === 1) {
+        newEnemy = enemiesLib[upTo];
+      } else {
+        // take mix
+        const mix = enemiesLib.slice(0, upTo);
+        newEnemy = mix[Math.floor(Math.random() * mix.length)];
+      }
+    }
+    enemies.push(new newEnemy(player)); //Enemy());
+    enemySound.play();
     timeStampCreationLastEnemy = millis();
   }
 }
@@ -154,12 +243,33 @@ function drawExplosions() {
 }
 
 function processEnemies() {
+  const newEnemyBullets = [];
   for (var i = enemies.length - 1; i >= 0; i--) {
     var enemy = enemies[i];
-    enemy.update();
+    if (!enemy) continue;
+    newEnemyBullet = enemy.update();
+    if (newEnemyBullet) newEnemyBullets.push(newEnemyBullet);
     enemy.render();
-    if (player.hits(enemy)) {
+    if (enemy.hits(player)) {
       die();
+    }
+  }
+  return newEnemyBullets;
+}
+
+function processEnemyBullets() {
+  for (var i = enemyBullets.length - 1; i >= 0; i--) {
+    const enemyBullet = enemyBullets[i];
+    console.log({ enemyBullet });
+    enemyBullet.update();
+    enemyBullet.render();
+    if (enemyBullet.outsideWindow()) {
+      console.log("outside window enemyBullet: destroyed");
+      enemyBullets.splice(i, 1);
+    }
+    if (player.hits(enemyBullet)) {
+      enemyBullets.splice(i, 1);
+      return die();
     }
   }
 }
@@ -177,7 +287,9 @@ function processBullets() {
       var enemy = enemies[k];
       if (enemy.hits(bullet)) {
         score += enemy.getScore();
+        enemyDeadSound.play();
         enemies.splice(k, 1);
+        bullets.splice(i, 1);
       }
     }
   }
@@ -187,11 +299,16 @@ function die() {
   console.log("death");
   explosions.push(new Explosion(player.pos));
   life--;
-  restartLevel();
+  deadSound.play();
+  if (life <= 0) {
+    noLoop();
+  }
+  tryAgain();
 }
 
 function atombomb() {
   background(255);
+  bombSound.play();
   enemies.forEach((enemy) => {
     score += enemy.getScore();
   });
@@ -203,8 +320,8 @@ function atombomb() {
 
 function mouseMoved() {
   if (mousePrevX && mousePrevY) {
-    var changeX = mouseX - width / 2;
-    var changeY = mouseY - height / 2;
+    var changeX = mouseX - width / 1.5;
+    var changeY = mouseY - height / 1.5;
     //console.log("%s %s",changeX, changeY);
     player.setMotion(changeX, changeY);
   }
@@ -215,16 +332,51 @@ function mouseMoved() {
 function keyReleased() {}
 
 function keyPressed() {
-  if (key === " ") {
-    console.log("spacebar");
-    atombomb();
+  switch (key) {
+    case " ":
+      console.log("spacebar");
+      atombomb();
+      break;
+    case "x":
+      shoot();
+      break;
+    case "r":
+      restartGame();
+      break;
+    case "q":
+    case "p":
+      paused = !paused;
+      break;
+    case "f":
+      startGame();
+      break;
+    case "k":
+      console.log("play background video!");
+      videoBack.loop(); // set the video to loop and start playing
+      break;
   }
-  if (key === "p") {
-    console.log("play!");
-    videoBack.loop(); // set the video to loop and start playing
-  }
+}
+
+function startGame() {
+  openFullscreen();
+  window.setTimeout(() => {
+    paused = false;
+  }, 200);
 }
 
 function randomBetween(a, b) {
   return Math.floor((b - a + 1) * Math.random()) + a;
+}
+
+function openFullscreen() {
+  const elem = document.body;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) {
+    /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    /* IE11 */
+    elem.msRequestFullscreen();
+  }
 }
