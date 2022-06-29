@@ -1,18 +1,9 @@
 let player;
 let mousePrevX, mousePrevY;
-let crystals = [];
-let enemies = [];
 let timeStampCreationLastEnemy = 0;
 let gate;
 let enemyGate;
 let videoBack;
-let explosions = [];
-let bullets = [];
-let enemyBullets = [];
-let mines = [];
-let level = 1; // with enemey bullets testing
-let life = 5;
-let score = 0;
 let flora, giel, deadSound, ijsje, explosive, playerImg, bullet, stars;
 let crystalSound,
   warp,
@@ -25,8 +16,18 @@ let crystalSound,
   bombSound,
   enemyShootSound,
   backgroundMusic;
-let firstTimeFullscreen = true;
-let paused = true;
+let paused;
+let crystals;
+let enemies;
+let explosions;
+let bullets;
+let enemyBullets;
+let mines;
+let level;
+let life;
+let bombs;
+let score;
+gameConfig();
 
 let cfg = {
   enemyAfter: randomBetween(0, 1 * 1000),
@@ -39,6 +40,20 @@ function fromTo(lowEnd, highEnd) {
     list.push(i);
   }
   return list;
+}
+
+function gameConfig() {
+  paused = true;
+  crystals = [];
+  enemies = [];
+  explosions = [];
+  bullets = [];
+  enemyBullets = [];
+  mines = [];
+  level = 1; // with enemey bullets testing
+  life = 5;
+  bombs = 5;
+  score = 0;
 }
 
 function preload() {
@@ -91,7 +106,9 @@ function setup() {
 }
 
 function restartGame() {
-  life = 5;
+  gameConfig();
+  paused = false;
+  loop();
   reset();
 }
 
@@ -142,8 +159,33 @@ function drawBackground() {
   // image(videoBack, 0, 0, width, height);
 }
 
+function pauseScreen() {
+  fill(0);
+  background(0);
+  fill(200);
+
+  textAlign(CENTER, CENTER);
+  text(
+    `Welcome to Crystal Quest
+    Collect icescreams, enter portal at bottom
+
+    Click the mouse to start/pause
+
+    x =  shoot
+    spacebar = bomb
+    
+    f =  fullscreen
+    r = restart game`,
+    0,
+    height / 2 - 60,
+    width
+  );
+}
+
 function draw() {
-  if (paused) return;
+  if (paused) {
+    return pauseScreen();
+  }
   drawBackground();
   createEnemies(); // every x seconds
   const newEnemyBullets = processEnemies();
@@ -166,7 +208,20 @@ function draw() {
 
 function drawScores() {
   fill(255);
-  text("Level: " + level + " Lives: " + life + " Score: " + score, 10, 20);
+  textSize(12);
+  textAlign(LEFT);
+  text(
+    "Level: " +
+      level +
+      "   Lives: " +
+      life +
+      "   Score: " +
+      score +
+      "   Bombs: " +
+      bombs,
+    5,
+    12
+  );
 }
 
 function processMines() {
@@ -306,12 +361,25 @@ function die() {
   life--;
   deadSound.play();
   if (life <= 0) {
-    noLoop();
+    return gameOver();
   }
   tryAgain();
 }
 
+function gameOver() {
+  noLoop();
+  fill(255);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text(
+    "GAME OVER\nSCORE: " + score + "\n\npress r to restart",
+    width / 2,
+    height / 2
+  );
+}
+
 function atombomb() {
+  if (bombs <= 0) return;
   background(255);
   bombSound.play();
   enemies.forEach((enemy) => {
@@ -321,6 +389,8 @@ function atombomb() {
   timeStampCreationLastEnemy = 0;
   explosions = [];
   bullets = [];
+  enemyBullets = [];
+  bombs--;
 }
 
 function mouseMoved() {
@@ -336,6 +406,10 @@ function mouseMoved() {
 
 function keyReleased() {}
 
+function mousePressed() {
+  paused = !paused;
+}
+
 function keyPressed() {
   switch (key) {
     case " ":
@@ -348,6 +422,7 @@ function keyPressed() {
     case "r":
       restartGame();
       break;
+    case "ESCAPE":
     case "q":
     case "p":
       paused = !paused;
