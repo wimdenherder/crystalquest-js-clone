@@ -27,6 +27,7 @@ let level;
 let life;
 let bombs;
 let score;
+let firstTimePlaying = true;
 gameConfig();
 
 let cfg = {
@@ -167,7 +168,7 @@ function pauseScreen() {
   textAlign(CENTER, CENTER);
   text(
     `Welcome to Crystal Quest
-    Collect icescreams, enter portal at bottom
+    Collect icescreams
 
     Click the mouse to start/pause
 
@@ -182,9 +183,25 @@ function pauseScreen() {
   );
 }
 
-function draw() {
+function showText(message, durationSec) {
+  background(0);
+  fill(255);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text(message, width / 2, height / 2);
+  noLoop();
+  setTimeout(() => {
+    loop();
+  }, durationSec * 1000);
+}
+
+async function draw() {
   if (paused) {
     return pauseScreen();
+  }
+  if (crystals.length === 0 && firstTimePlaying) {
+    firstTimePlaying = false;
+    return showText("Enter the port at the bottom", 1);
   }
   drawBackground();
   createEnemies(); // every x seconds
